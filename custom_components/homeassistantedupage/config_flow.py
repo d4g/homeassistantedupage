@@ -2,7 +2,7 @@ import logging
 import voluptuous as vol
 import time
 from edupage_api import Edupage
-from edupage_api.exceptions import BadCredentialsException, SecondFactorFailedException
+from edupage_api.exceptions import BadCredentialsException, CaptchaException, SecondFactorFailedException
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from.const import CONF_PHPSESSID, CONF_SUBDOMAIN, CONF_STUDENT_ID, CONF_STUDENT_NAME
@@ -15,44 +15,29 @@ class EdupageConfigFlow(config_entries.ConfigFlow, domain="homeassistantedupage"
     VERSION = 1
 
     def login(self, api, user_input):
-        try:
-            second_factor = api.login(user_input[CONF_USERNAME], user_input[CONF_PASSWORD], user_input[CONF_SUBDOMAIN])
-            if second_factor is not None:
-                # TODO: add user select as dropdown?! for 2FA
-                confirmation_method = "1"
+        second_factor = api.login(
+            user_input[CONF_USERNAME],
+            user_input[CONF_PASSWORD],
+            user_input[CONF_SUBDOMAIN],
+        )
+        if second_factor is not None:
+            deadline = time.monotonic() + 60
+            while not second_factor.is_confirmed():
+                if time.monotonic() > deadline:
+                    raise SecondFactorFailedException("2FA confirmation timed out")
+                time.sleep(0.5)
+            second_factor.finish()
 
-                if confirmation_method == "1":
-                    #TODO: waiting does not work, maybe cause of async?! SecondFactorFailedException is raised if no breakpoint debug is set
-                    while not second_factor.is_confirmed():
-                        time.sleep(0.5)
-                    second_factor.finish()
-
-                elif confirmation_method == "2":
-                    # TODO: how to do this in HA?!
-                    code = input("Enter 2FA code (or 'resend' to resend the code): ")
-                    while code.lower() == "resend":
-                        second_factor.resend_notifications()
-                        code = input("Enter 2FA code (or 'resend' to resend the code): ")
-                    second_factor.finish_with_code(code)
-
-        except BadCredentialsException as e:
-            _LOGGER.error("Wrong username or password: %s", e)
-        except SecondFactorFailedException as e:
-            _LOGGER.error("Second factor failed: %s", e)
-
-        #TODO: what does HA expect here as return?!
-        if api.is_logged_in:
-            print("Logged in")
-            _LOGGER.info("Successfully logged in.")
-        else:
+        if not api.is_logged_in:
             raise BadCredentialsException("Wrong username or password")
+        _LOGGER.debug("Successfully logged in.")
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
         errors = {}
 
         if user_input is not None:
-            _LOGGER.info("User input received: %s", user_input)
+            _LOGGER.debug("User submitted config form for subdomain=%s", user_input.get(CONF_SUBDOMAIN))
             api = Edupage()
 
             try:
@@ -82,6 +67,15 @@ class EdupageConfigFlow(config_entries.ConfigFlow, domain="homeassistantedupage"
                     # Weiter zur Schülerauswahl
                     return await self.async_step_select_student()
 
+            except BadCredentialsException as e:
+                _LOGGER.warning("Login rejected: %s", e)
+                errors["base"] = "invalid_auth"
+            except CaptchaException as e:
+                _LOGGER.warning("Login blocked by CAPTCHA: %s", e)
+                errors["base"] = "captcha_required"
+            except SecondFactorFailedException as e:
+                _LOGGER.warning("Two-factor confirmation failed: %s", e)
+                errors["base"] = "invalid_auth"
             except Exception as e:
                 _LOGGER.error("Exception during API call: %s", e)
                 errors["base"] = "cannot_connect"
