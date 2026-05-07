@@ -23,7 +23,10 @@ class EdupageConfigFlow(config_entries.ConfigFlow, domain="homeassistantedupage"
 
                 if confirmation_method == "1":
                     #TODO: waiting does not work, maybe cause of async?! SecondFactorFailedException is raised if no breakpoint debug is set
+                    deadline = time.monotonic() + 60
                     while not second_factor.is_confirmed():
+                        if time.monotonic() > deadline:
+                            raise SecondFactorFailedException("2FA confirmation timed out")
                         time.sleep(0.5)
                     second_factor.finish()
 
@@ -52,7 +55,7 @@ class EdupageConfigFlow(config_entries.ConfigFlow, domain="homeassistantedupage"
         errors = {}
 
         if user_input is not None:
-            _LOGGER.info("User input received: %s", user_input)
+            _LOGGER.debug("User submitted config form for subdomain=%s", user_input.get(CONF_SUBDOMAIN))
             api = Edupage()
 
             try:
