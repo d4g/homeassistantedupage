@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from edupage_api.exceptions import BadCredentialsException, CaptchaException
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .homeassistant_edupage import Edupage
 from edupage_api.lunches import Meal
@@ -38,11 +39,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     except BadCredentialsException as e:
         _LOGGER.error("INIT login failed: bad credentials. %s", e)
-        return False
+        raise ConfigEntryAuthFailed("Invalid EduPage credentials") from e
 
     except CaptchaException as e:
         _LOGGER.error("INIT login failed: CAPTCHA needed. %s", e)
-        return False
+        raise ConfigEntryAuthFailed("EduPage CAPTCHA required") from e
 
     except Exception as e:
         _LOGGER.error("INIT unexpected login error: %s", e.with_traceback(None))

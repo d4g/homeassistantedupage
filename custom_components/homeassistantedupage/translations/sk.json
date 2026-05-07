@@ -2,7 +2,10 @@
   "config": {
     "flow_title": "Nastavenie EduPage",
     "error": {
-      "cannot_connect": "Chyba spojenia"
+      "cannot_connect": "Chyba spojenia",
+      "invalid_auth": "Nesprávne meno používateľa alebo heslo",
+      "captcha_required": "EduPage vyžaduje CAPTCHA. Prihláste sa cez webovú stránku EduPage, vyriešte CAPTCHA a skúste znova.",
+      "no_students_found": "Pre tento účet sa nenašli žiadni študenti."
     },
     "step": {
       "user": {

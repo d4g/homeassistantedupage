@@ -2,7 +2,10 @@
   "config": {
     "flow_title": "EduPage Setup Flow",
     "error": {
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]"
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "captcha_required": "EduPage requires a CAPTCHA. Log in via the EduPage website, complete the CAPTCHA, then retry.",
+      "no_students_found": "No students were found for this account."
     },
     "step": {
       "user": {

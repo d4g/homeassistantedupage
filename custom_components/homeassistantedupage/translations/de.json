@@ -2,7 +2,10 @@
   "config": {
     "flow_title": "EduPage Setup Flow",
     "error": {
-      "cannot_connect": "Keine Verbindung möglich"
+      "cannot_connect": "Keine Verbindung möglich",
+      "invalid_auth": "Benutzername oder Passwort ist falsch",
+      "captcha_required": "EduPage verlangt ein CAPTCHA. Bitte melden Sie sich auf der EduPage-Website an, lösen Sie das CAPTCHA und versuchen Sie es erneut.",
+      "no_students_found": "Für dieses Konto wurden keine Schüler gefunden."
     },
     "step": {
       "user": {
